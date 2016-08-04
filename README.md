@@ -5,9 +5,9 @@ Simple Object Relational Mapping for PHP
 ## Installation
 
 ```shell
-$ composer require cyve/orm
-$ composer install
-$ composer dump-autoload
+composer require cyve/orm
+composer install
+composer dump-autoload
 ```
 
 ## Usage
