@@ -47,7 +47,8 @@ trait Entity
 	 */
 	public static function find($filters=array(), $orderBy=array(), $limit=null, $offset=null){
 		$dbh = static::getDbh();
-		$table = static::getTable(__CLASS__);
+		$class = __CLASS__;
+		$table = static::getTable();
 		
 		if(is_numeric($filters)){
 			$filters = array('id' => $filters);
@@ -62,7 +63,7 @@ trait Entity
 		//echo $sql;die;
 		
 		$query = $dbh->query($sql);
-		$query->setFetchMode(\PDO::FETCH_CLASS, __CLASS__);
+		$query->setFetchMode(\PDO::FETCH_CLASS, $class);
 		if($limit === 1) $results = $query->fetch();
 		else $results = $query->fetchAll();
 		
@@ -75,7 +76,7 @@ trait Entity
 	 */
 	public static function count($filters=array()){
 		$dbh = static::getDbh();
-		$table = static::getTable(__CLASS__);
+		$table = static::getTable();
 		
 		if(is_numeric($filters)){
 			$filters = array('id' => $filters);

@@ -42,18 +42,6 @@ var_dump($results);
 
 echo '<hr>';
 
-echo "Foo::getTable();";
-$method = new ReflectionMethod('Foo', 'getTable');
-$method->setAccessible(true);
-var_dump($method->invoke(new Foo));
-
-echo "Foo::getFields();";
-$method = new ReflectionMethod('Foo', 'getFields');
-$method->setAccessible(true);
-var_dump($method->invoke(new Foo));
-
-echo '<hr>';
-
 $foo = new Foo(null, 'miam');
 var_dump($foo->isNew());
 $foo->save();
@@ -68,3 +56,33 @@ var_dump($foo);
 $foo->delete();
 $foo = Foo::find($foo->id);
 var_dump($foo);
+
+echo '<hr>';
+
+echo "Foo::getTable();";
+$method = new ReflectionMethod('Foo', 'getTable');
+$method->setAccessible(true);
+var_dump($method->invoke(new Foo));
+
+echo "Foo::getFields();";
+$method = new ReflectionMethod('Foo', 'getFields');
+$method->setAccessible(true);
+var_dump($method->invoke(new Foo));
+
+$property = new ReflectionProperty('Foo', 'table');
+$property->setAccessible(true);
+$property->setValue('foo2');
+
+echo "Foo::getTable();";
+$method = new ReflectionMethod('Foo', 'getTable');
+$method->setAccessible(true);
+var_dump($method->invoke(new Foo));
+
+$property = new ReflectionProperty('Foo', 'fields');
+$property->setAccessible(true);
+$property->setValue('name,location');
+
+echo "Foo::getFields();";
+$method = new ReflectionMethod('Foo', 'getFields');
+$method->setAccessible(true);
+var_dump($method->invoke(new Foo));
