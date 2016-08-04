@@ -6,7 +6,6 @@
  *
  * @todo prepared queries
  * @todo validator
- * @todo hooks
  */
 
 namespace Cyve\ORM;
@@ -17,9 +16,9 @@ namespace Cyve\ORM;
 trait Entity
 {
 	/**
-	 * @ver PDO
+	 * @var EntityManager
 	 */
-	protected static $dbh;
+	protected static $em;
 	
 	/**
 	 * @ver string
@@ -32,13 +31,8 @@ trait Entity
 	protected static $fields;
 	
 	/**
-	 * @return boolean
-	 */
-	public function isNew(){
-		return empty($this->id) || $this->id < 0;
-	}
-	
-	/**
+	 * Read objects from database
+	 *
 	 * @param array $filters
 	 * @param array $orderBy
 	 * @param integer $limit
@@ -46,134 +40,90 @@ trait Entity
 	 * @return array|object
 	 */
 	public static function find($filters=array(), $orderBy=array(), $limit=null, $offset=null){
-		$dbh = static::getDbh();
-		$class = __CLASS__;
-		$table = static::getTable();
-		
-		if(is_numeric($filters)){
-			$filters = array('id' => $filters);
-			$limit = 1;
-		}
-		
-		$sql = "SELECT * FROM ".addslashes($table);
-		$sql .= static::getFilterSql($filters);
-		$sql .= static::getOrderSql($orderBy);
-		$sql .= static::getLimitSql($limit, $offset);
-		$sql .= ";";
-		//echo $sql;die;
-		
-		$query = $dbh->query($sql);
-		$query->setFetchMode(\PDO::FETCH_CLASS, $class);
-		if($limit === 1) $results = $query->fetch();
-		else $results = $query->fetchAll();
-		
-		return $results;
+		return static::getEntityManager()->find($filters, $orderBy, $limit, $offset);
 	}
 	
 	/**
+	 * Count objects in database
+	 * 
 	 * @param array $filters
 	 * @return integer
 	 */
 	public static function count($filters=array()){
-		$dbh = static::getDbh();
-		$table = static::getTable();
-		
-		if(is_numeric($filters)){
-			$filters = array('id' => $filters);
-			$limit = 1;
-		}
-		
-		$sql = "SELECT COUNT(*) AS count FROM ".addslashes($table);
-		$sql .= static::getFilterSql($filters);
-		$sql .= ";";
-		//echo $sql;die;
-		
-		$query = $dbh->query($sql);
-		$query->setFetchMode(\PDO::FETCH_OBJ);
-		return (int) $query->fetch()->count;
+		return static::getEntityManager()->count($filters);
 	}
 	
 	/**
+	 * Returns true if object is not saved in database
+	 *
+	 * @return boolean
+	 */
+	public function isNew(){
+		return empty($this->id) || $this->id < 0;
+	}
+	
+	/**
+	 * Create or update object in database
+	 *
 	 * @return boolean
 	 */
 	public function save(){
-		if(method_exists(__CLASS__, "validate") && !$this->validate()) throw new \Exception("Invalid data");
-		
-		$dbh = static::getDbh();
-		$table = static::getTable(__CLASS__);
-		$fields = static::getFields(__CLASS__);
-		
-		if($this->isNew()){
-			$values = array();
-			foreach($fields as $field){
-				$values[] = "'".(isset($this->$field) ? addslashes($this->$field) : '')."'";
-			}
-			
-			$sql = "INSERT INTO ".addslashes($table)." (".addslashes(implode(',', $fields)).")";
-			$sql .= " VALUES (".implode(',', $values).")";
-			$sql .= ";";
-		}
-		else {
-			$values = array();
-			foreach($fields as $field){
-				$values[] = addslashes($field)." = '".(isset($this->$field) ? addslashes($this->$field) : '')."'";
-			}
-			
-			$sql = "UPDATE ".addslashes($table);
-			$sql .= " SET ".implode(',', $values);
-			$sql .= " WHERE id = ".addslashes($this->id).";";
-		}
-		//echo $sql;die;
-		
-		$result = $dbh->exec($sql);
-		if($result && $this->isNew()) $this->id = $dbh->lastInsertId();
-		
-		return $result !== false;
+		$this->preSave();
+		$result = static::getEntityManager()->save($this);
+		$this->postSave($result);
+		return $result;
 	}
 	
 	/**
+	 * Executed before saving object
+	 *
+	 * @return
+	 */
+	public function preSave(){}
+	
+	/**
+	 * Executed after saving object
+	 *
+	 * @param boolean
+	 */
+	public function postSave($result){}
+	
+	/**
+	 * Delete object from database
+	 *
 	 * @return boolean
 	 */
 	public function delete(){
-		$dbh = static::getDbh();
-		$table = static::getTable(__CLASS__);
-		
-		$sql = "DELETE FROM ".addslashes($table)." WHERE id = ".addslashes($this->id).";";
-		//echo $sql;die;
-		
-		$result = $dbh->exec($sql);
-		
-		return $result !== false;
+		$this->preDelete();
+		$result = static::getEntityManager()->delete($this->id);
+		$this->postDelete($result);
+		return $result;
 	}
 	
 	/**
-	 * @param PDO
+	 * Executed before deleting object
+	 *
+	 * @return
 	 */
-	public static function setDbh($dbh){
-		static::$dbh = $dbh;
-	}
+	public function preDelete(){}
 	
 	/**
-	 * @return PDO
+	 * Executed after deleting object
+	 *
+	 * @param boolean
 	 */
-	public static function getDbh(){
+	public function postDelete($result){}
+	
+	/**
+	 * Retrieve entity manager
+	 *
+	 * @return EntityManager
+	 */
+	public static function getEntityManager(){
 		global $dbh;
-		if(empty(static::$dbh) && !empty($dbh)) static::$dbh = $dbh;
-		return static::$dbh;
-	}
-	
-	/**
-	 * @return string
-	 */
-	private static function getTable(){
-		if(empty(static::$table)) static::$table = strtolower(__CLASS__);
-		return static::$table;
-	}
-	
-	/**
-	 * @return array
-	 */
-	private static function getFields(){
+		
+		$class = __CLASS__;
+		$table = empty(static::$table) ? strtolower(__CLASS__) : static::$table;
 		if(empty(static::$fields)){
 			$reflectionData = new \ReflectionClass(__CLASS__);
 			$staticProperties = array_keys($reflectionData->getStaticProperties());
@@ -181,57 +131,14 @@ trait Entity
 			array_walk($properties, function(&$value, $key){
 				$value = $value->getName();
 			});
-			static::$fields = array_diff($properties, $staticProperties, array('id'));
+			$fields = array_diff($properties, $staticProperties, array('id'));
 		}
-		elseif(is_string(static::$fields)) static::$fields = explode(',', static::$fields);
-		return static::$fields;
-	}
-	
-	/**
-	 * @param array $filters
-	 * @return string
-	 */
-	public static function getFilterSql($filters){
-		if(empty($filters)) return '';
-		
-		$where = array();
-		foreach($filters as $key=>$value){
-			if(is_array($value)) $where[] = addslashes($key)." IN ('".implode("','", array_map('addslashes', $value))."')";
-			elseif(substr($value, 0, 1) === "/" && substr($value, -1) === "/") $where[] = addslashes($key)." REGEXP '".addslashes($value)."'";
-			elseif(strpos($value, '%') >= 0) $where[] = addslashes($key)." LIKE '".addslashes($value)."'";
-			else $where[] = addslashes($key)."='".addslashes($value)."'";
+		else{
+			$fields = explode(',', static::$fields);
 		}
 		
-		if(sizeof($where) === 0) return '';
-		return " WHERE ".implode(" AND ", $where);
-	}
-	
-	/**
-	 * @param array $orderBy
-	 * @return string
-	 */
-	public static function getOrderSql($orderBy){
-		if(empty($orderBy)) return '';
-		
-		$order = array();
-		foreach($orderBy as $key=>$value){
-			$order[] = addslashes($key)." ".addslashes($value);
-		}
-		
-		if(sizeof($order) === 0) return '';
-		return " ORDER BY ".implode(",", $order);
-	}
-	
-	/**
-	 * @param integer $limit
-	 * @param integer $offset
-	 * @return string
-	 */
-	public static function getLimitSql($limit, $offset){
-		if(empty($limit) || !filter_var($limit, FILTER_VALIDATE_INT, array('options' => array('min_range' => 0)))) return '';
-		if(empty($offset)) $offset = 0;
-		else $offset = filter_var($offset, FILTER_VALIDATE_INT, array('options' => array('default' => 0, 'min_range' => 0)));
-		return " LIMIT ".$offset.",".$limit;
+		if(!static::$em instanceof EntityManager) static::$em = new EntityManager($dbh, $class, $table, $fields);
+		return static::$em;
 	}
 }
 

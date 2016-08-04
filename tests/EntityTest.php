@@ -8,37 +8,34 @@ use Cyve\ORM\Entity;
 
 $dbh = new PDO('sqlite:db/orm', 'root', '', array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION));
 
+echo "Foo::getEntityManager();";
+var_dump(Foo::getEntityManager());
+
+echo '<hr>';
+
 echo "Foo::find();";
-$results = Foo::find();
-var_dump($results);
+var_dump(Foo::find());
 
 echo "Foo::count();";
-$results = Foo::count();
-var_dump($results);
+var_dump(Foo::count());
 
 echo "Foo::find(null, array('name' => 'desc'));";
-$results = Foo::find(null, array('name' => 'desc'));
-var_dump($results);
+var_dump(Foo::find(null, array('name' => 'desc')));
 
 echo "Foo::find(1);";
-$results = Foo::find(1);
-var_dump($results);
+var_dump(Foo::find(1));
 
 echo "Foo::find(array('name' => 'bar'));";
-$results = Foo::find(array('name' => 'bar'));
-var_dump($results);
+var_dump(Foo::find(array('name' => 'bar')));
 
 echo "Foo::count(array('name' => 'bar'));";
-$results = Foo::count(array('name' => 'bar'));
-var_dump($results);
+var_dump(Foo::count(array('name' => 'bar')));
 
 echo "Foo::find(array('name' => 'ba%'));";
-$results = Foo::find(array('name' => 'ba%'));
-var_dump($results);
+var_dump(Foo::find(array('name' => 'ba%')));
 
 echo "Foo::find(null, null, 1);";
-$results = Foo::find(null, null, 1);
-var_dump($results);
+var_dump(Foo::find(null, null, 1));
 
 echo '<hr>';
 
@@ -59,30 +56,17 @@ var_dump($foo);
 
 echo '<hr>';
 
-echo "Foo::getTable();";
-$method = new ReflectionMethod('Foo', 'getTable');
-$method->setAccessible(true);
-var_dump($method->invoke(new Foo));
-
-echo "Foo::getFields();";
-$method = new ReflectionMethod('Foo', 'getFields');
-$method->setAccessible(true);
-var_dump($method->invoke(new Foo));
+$property = new ReflectionProperty('Foo', 'em');
+$property->setAccessible(true);
+$property->setValue(null);
 
 $property = new ReflectionProperty('Foo', 'table');
 $property->setAccessible(true);
 $property->setValue('foo2');
 
-echo "Foo::getTable();";
-$method = new ReflectionMethod('Foo', 'getTable');
-$method->setAccessible(true);
-var_dump($method->invoke(new Foo));
-
 $property = new ReflectionProperty('Foo', 'fields');
 $property->setAccessible(true);
 $property->setValue('name,location');
 
-echo "Foo::getFields();";
-$method = new ReflectionMethod('Foo', 'getFields');
-$method->setAccessible(true);
-var_dump($method->invoke(new Foo));
+echo "Foo::getEntityManager();";
+var_dump(Foo::getEntityManager());
