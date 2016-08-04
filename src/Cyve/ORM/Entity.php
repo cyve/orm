@@ -47,8 +47,7 @@ trait Entity
 	 */
 	public static function find($filters=array(), $orderBy=array(), $limit=null, $offset=null){
 		$dbh = static::getDbh();
-		$class = static::getClass();
-		$table = static::getTable();
+		$table = static::getTable(__CLASS__);
 		
 		if(is_numeric($filters)){
 			$filters = array('id' => $filters);
@@ -63,7 +62,7 @@ trait Entity
 		//echo $sql;die;
 		
 		$query = $dbh->query($sql);
-		$query->setFetchMode(\PDO::FETCH_CLASS, $class);
+		$query->setFetchMode(\PDO::FETCH_CLASS, __CLASS__);
 		if($limit === 1) $results = $query->fetch();
 		else $results = $query->fetchAll();
 		
@@ -76,8 +75,7 @@ trait Entity
 	 */
 	public static function count($filters=array()){
 		$dbh = static::getDbh();
-		$class = static::getClass();
-		$table = static::getTable();
+		$table = static::getTable(__CLASS__);
 		
 		if(is_numeric($filters)){
 			$filters = array('id' => $filters);
@@ -101,9 +99,8 @@ trait Entity
 		if(method_exists(__CLASS__, "validate") && !$this->validate()) throw new \Exception("Invalid data");
 		
 		$dbh = static::getDbh();
-		$class = static::getClass();
-		$table = static::getTable();
-		$fields = static::getFields();
+		$table = static::getTable(__CLASS__);
+		$fields = static::getFields(__CLASS__);
 		
 		if($this->isNew()){
 			$values = array();
@@ -138,7 +135,7 @@ trait Entity
 	 */
 	public function delete(){
 		$dbh = static::getDbh();
-		$table = static::getTable();
+		$table = static::getTable(__CLASS__);
 		
 		$sql = "DELETE FROM ".addslashes($table)." WHERE id = ".addslashes($this->id).";";
 		//echo $sql;die;
@@ -167,15 +164,8 @@ trait Entity
 	/**
 	 * @return string
 	 */
-	private static function getClass(){
-		return __CLASS__;
-	}
-	
-	/**
-	 * @return string
-	 */
 	private static function getTable(){
-		if(empty(static::$table)) return strtolower(__CLASS__);
+		if(empty(static::$table)) static::$table = strtolower(__CLASS__);
 		return static::$table;
 	}
 	
@@ -184,15 +174,15 @@ trait Entity
 	 */
 	private static function getFields(){
 		if(empty(static::$fields)){
-			$reflectionData = new \ReflectionObject(new self());
+			$reflectionData = new \ReflectionClass(__CLASS__);
 			$staticProperties = array_keys($reflectionData->getStaticProperties());
 			$properties = $reflectionData->getProperties(\ReflectionProperty::IS_PUBLIC | \ReflectionProperty::IS_PROTECTED | \ReflectionProperty::IS_PRIVATE);
 			array_walk($properties, function(&$value, $key){
 				$value = $value->getName();
 			});
-			return array_diff($properties, $staticProperties, array('id'));
+			static::$fields = array_diff($properties, $staticProperties, array('id'));
 		}
-		elseif(is_string(static::$fields)) return explode(',', static::$fields);
+		elseif(is_string(static::$fields)) static::$fields = explode(',', static::$fields);
 		return static::$fields;
 	}
 	

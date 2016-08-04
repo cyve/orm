@@ -1,8 +1,6 @@
 <?php
-use Cyve\ORM\Entity;
-
 class Foo{
-	use Entity;
+	use Cyve\ORM\Entity;
 	
 	public $id;
 	public $name;

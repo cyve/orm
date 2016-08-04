@@ -42,11 +42,6 @@ var_dump($results);
 
 echo '<hr>';
 
-echo "Foo::getClass();";
-$method = new ReflectionMethod('Foo', 'getClass');
-$method->setAccessible(true);
-var_dump($method->invoke(new Foo));
-
 echo "Foo::getTable();";
 $method = new ReflectionMethod('Foo', 'getTable');
 $method->setAccessible(true);
